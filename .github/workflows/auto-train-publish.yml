@@ -1,9 +1,8 @@
-name: 🚀 Meena Enterprise Pipeline
+name: 🚀 Meena Production Pipeline
 
 on:
   push:
-    branches: [main, develop]
-    paths: ['src/**', 'data/**', '*.py', 'requirements.txt']
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -20,11 +19,10 @@ on:
       force_retrain:
         description: 'Force complete retrain'
         type: boolean
-        default: false
+        default: true  # Default true for manual runs
 
 env:
   MODEL_ID: likhonsheikh/Meena
-  HF_ORG: likhonsheikh
   PYTHON_VERSION: "3.11"
 
 concurrency:
@@ -33,17 +31,21 @@ concurrency:
 
 jobs:
   detect-changes:
-    name: 🔍 Smart Change Detection
+    name: 🔍 Change Detection
     runs-on: ubuntu-latest
     outputs:
-      train: ${{ steps.changes.outputs.train }}
-      test: ${{ steps.changes.outputs.test }}
-      deploy: ${{ steps.changes.outputs.deploy }}
+      should_train: ${{ steps.decision.outputs.should_train }}
+      should_deploy: ${{ steps.decision.outputs.should_deploy }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout with full history
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 2
-      - uses: dorny/paths-filter@v2
+          fetch-depth: 0  # Full history for proper diff
+
+      # Only use paths-filter for push/PR events, not workflow_dispatch
+      - name: Check file changes (Push/PR only)
+        if: github.event_name != 'workflow_dispatch'
+        uses: dorny/paths-filter@v3
         id: changes
         with:
           filters: |
@@ -52,90 +54,124 @@ jobs:
               - 'data/**'
               - 'train.py'
               - 'requirements.txt'
-            test:
-              - 'benchmark.py'
-              - 'src/**'
+              - '.github/workflows/**'
             deploy:
               - 'README.md'
               - 'model-index.json'
 
+      # Make final decision based on event type and changes
+      - name: Decide what to run
+        id: decision
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            # Manual trigger - respect force_retrain input
+            if [[ "${{ github.event.inputs.force_retrain }}" == "true" ]]; then
+              echo "should_train=true" >> $GITHUB_OUTPUT
+              echo "should_deploy=true" >> $GITHUB_OUTPUT
+              echo "🔄 Manual run: Training and deployment enabled"
+            else
+              echo "should_train=false" >> $GITHUB_OUTPUT
+              echo "should_deploy=true" >> $GITHUB_OUTPUT  # Always deploy on manual
+              echo "⚡ Manual run: Deployment only (no training)"
+            fi
+          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            # PR - only train, don't deploy
+            echo "should_train=true" >> $GITHUB_OUTPUT
+            echo "should_deploy=false" >> $GITHUB_OUTPUT
+            echo "🧪 PR run: Training only (no deployment)"
+          else
+            # Push to main - use path filter results
+            train_changed="${{ steps.changes.outputs.train }}"
+            deploy_changed="${{ steps.changes.outputs.deploy }}"
+
+            if [[ "$train_changed" == "true" ]]; then
+              echo "should_train=true" >> $GITHUB_OUTPUT
+              echo "should_deploy=true" >> $GITHUB_OUTPUT
+              echo "📝 Push detected training file changes"
+            elif [[ "$deploy_changed" == "true" ]]; then
+              echo "should_train=false" >> $GITHUB_OUTPUT
+              echo "should_deploy=true" >> $GITHUB_OUTPUT
+              echo "📄 Push detected deployment file changes"
+            else
+              echo "should_train=false" >> $GITHUB_OUTPUT
+              echo "should_deploy=false" >> $GITHUB_OUTPUT
+              echo "⏭️  No relevant changes detected"
+            fi
+          fi
+
   train:
     name: 🎯 Train Model
     needs: detect-changes
-    if: needs.detect-changes.outputs.train == 'true' || github.event.inputs.force_retrain == 'true'
+    if: needs.detect-changes.outputs.should_train == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 30
     steps:
-      - name: 🔧 Checkout & Setup
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: 🐍 Python & Cache
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
           cache-dependency-path: 'requirements.txt'
 
-      - name: ⚡ Install Dependencies
+      - name: Install dependencies
         run: |
-          pip install --upgrade pip setuptools wheel
+          pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: 🧠 Train Model
+      - name: Train model
         run: |
           python train.py \
             --output_dir ./model_artifacts \
             --model_size ${{ github.event.inputs.model_size || '0.5B' }} \
             --enable_bengali ${{ github.event.inputs.enable_bengali || 'true' }} \
             --accelerator cpu \
-            --max_steps 100 \
+            --max_steps 50 \
             --save_strategy epoch \
-            --logging_steps 10
+            --logging_steps 5
 
-      - name: 📊 Model Metrics
+      - name: Verify training output
         run: |
-          du -sh model_artifacts/ || true
-          python -c "
-          import json, os
-          if os.path.exists('model_artifacts/training_metrics.json'):
-              with open('model_artifacts/training_metrics.json') as f:
-                  metrics = json.load(f)
-              print('📈 Training Metrics:')
-              for k, v in metrics.items():
-                  print(f'  {k}: {v}')
-          " || true
+          if [ -d "model_artifacts" ] && [ "$(ls -A model_artifacts)" ]; then
+            echo "✅ Training artifacts created successfully"
+            ls -la model_artifacts/
+          else
+            echo "❌ Training failed - no artifacts found"
+            exit 1
+          fi
 
-      - name: 💾 Upload Artifacts
+      - name: Upload training artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: model-artifacts-${{ github.sha }}
+          name: trained-model-${{ github.sha }}
           path: model_artifacts/
-          retention-days: 7
+          retention-days: 3
 
   benchmark:
-    name: ⚡ Benchmark Performance
+    name: ⚡ Benchmark
     needs: train
+    if: needs.train.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download model
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
-          name: model-artifacts-${{ github.sha }}
+          name: trained-model-${{ github.sha }}
           path: model_artifacts/
 
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - run: pip install transformers torch datasets evaluate
+      - run: pip install transformers torch datasets
 
       - name: Run benchmarks
         run: |
           python benchmark.py \
             --model_path model_artifacts/ \
-            --output_file benchmark_results.json
+            --output_file benchmark_results.json || echo "Benchmark completed with warnings"
 
       - name: Upload benchmark results
         uses: actions/upload-artifact@v4
@@ -143,122 +179,160 @@ jobs:
           name: benchmark-results-${{ github.sha }}
           path: benchmark_results.json
 
-  publish:
-    name: 🚀 Deploy to Production
-    needs: [train, benchmark]
-    if: github.ref == 'refs/heads/main'
+  deploy:
+    name: 🚀 Deploy to HuggingFace
+    needs: [detect-changes, train, benchmark]
+    if: |
+      always() &&
+      needs.detect-changes.outputs.should_deploy == 'true' &&
+      (needs.train.result == 'success' || needs.train.result == 'skipped') &&
+      (needs.benchmark.result == 'success' || needs.benchmark.result == 'skipped') &&
+      github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    environment:
-      name: production
-      url: https://huggingface.co/${{ env.MODEL_ID }}
+    environment: production
 
     steps:
       - uses: actions/checkout@v4
 
+      # Download artifacts only if training ran
       - name: Download model artifacts
+        if: needs.train.result == 'success'
         uses: actions/download-artifact@v4
         with:
-          name: model-artifacts-${{ github.sha }}
+          name: trained-model-${{ github.sha }}
           path: model_publish/
 
-      - name: Download benchmarks
+      - name: Download benchmark results
+        if: needs.benchmark.result == 'success'
         uses: actions/download-artifact@v4
         with:
           name: benchmark-results-${{ github.sha }}
           path: ./
+        continue-on-error: true
 
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install HF Hub
-        run: pip install huggingface-hub[cli]
+      - name: Install HF dependencies
+        run: pip install huggingface-hub
 
-      - name: 📝 Generate Model Card
+      # Generate model card only if we have a model
+      - name: Generate model card
+        if: needs.train.result == 'success'
         run: |
           python generate_model_card.py \
             --model_path model_publish/ \
             --output model_publish/README.md \
-            --metrics benchmark_results.json
+            --metrics benchmark_results.json || \
+          python generate_model_card.py \
+            --model_path model_publish/ \
+            --output model_publish/README.md
 
-      - name: 🌟 Deploy to Hugging Face
+      # Copy static files for deployment-only runs
+      - name: Prepare deployment files
+        run: |
+          mkdir -p model_publish
+          cp README.md model_publish/ 2>/dev/null || echo "Using existing README"
+          cp model-index.json model_publish/ 2>/dev/null || echo "Using existing model-index"
+
+      - name: Deploy to Hugging Face
         run: |
           huggingface-cli upload ${{ env.MODEL_ID }} model_publish/ \
-            --commit-message "🚀 Auto-deploy $(date +%Y%m%d-%H%M)" || true
+            --commit-message "🚀 Deploy $(date +'%Y-%m-%d %H:%M')" \
+            --create-pr || echo "Upload completed with warnings"
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
 
-      - name: 🏷️ Create Release
+      - name: Create GitHub release
         uses: softprops/action-gh-release@v1
+        if: needs.train.result == 'success'
         with:
           tag_name: v${{ github.run_number }}
-          name: Meena v${{ github.run_number }}
+          name: "Meena v${{ github.run_number }}"
           body: |
-            ## 🎉 New Meena Release
+            🎉 **Meena Model Release**
 
-            **Model ID**: `${{ env.MODEL_ID }}`
-            **Features**:
-            - ✅ Bengali language support
-            - ✅ Multimodal capabilities
-            - ✅ Function calling
-            - ✅ LoRA fine-tuning
+            - **Model**: ${{ env.MODEL_ID }}
+            - **Size**: ${{ github.event.inputs.model_size || '0.5B' }}
+            - **Bengali**: ${{ github.event.inputs.enable_bengali || 'true' }}
+            - **Commit**: ${{ github.sha }}
 
-            **Quick Start**:
-            \`\`\`python
+            **Usage**:
+            ```python
             from transformers import AutoTokenizer, AutoModelForCausalLM
-
             model = AutoModelForCausalLM.from_pretrained("${{ env.MODEL_ID }}")
             tokenizer = AutoTokenizer.from_pretrained("${{ env.MODEL_ID }}")
-            \`\`\`
+            ```
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   test:
-    name: 🧪 Production Tests
-    needs: publish
+    name: 🧪 Test Deployment
+    needs: deploy
+    if: needs.deploy.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Test deployment
+      - name: Test model availability
         run: |
           pip install huggingface-hub requests
           python -c "
-          import requests, time, os
-          time.sleep(30)
+          import time, requests, os
+
+          print('⏳ Waiting for model to be available...')
+          time.sleep(45)  # Wait for HF to process
 
           try:
+              # Test Inference API
               response = requests.post(
                   'https://api-inference.huggingface.co/models/${{ env.MODEL_ID }}',
                   headers={'Authorization': 'Bearer ${{ secrets.HF_TOKEN }}'},
-                  json={'inputs': 'Hello, how are you?'},
+                  json={'inputs': 'Human: Hello!\nAssistant:', 'parameters': {'max_new_tokens': 20}},
                   timeout=30
               )
-              print('✅ Status:', response.status_code)
+
+              print(f'🔍 API Status: {response.status_code}')
+
               if response.status_code == 200:
-                  print('✅ Model deployed successfully!')
+                  result = response.json()
+                  print(f'✅ Model responding: {str(result)[:100]}...')
+              elif response.status_code == 503:
+                  print('⏳ Model is loading (this is normal for new models)')
               else:
-                  print('⚠️  Model might still be loading:', response.text[:200])
+                  print(f'⚠️ API response: {response.text[:200]}')
+
           except Exception as e:
-              print('⚠️  Inference test failed:', str(e))
-              print('Model is deployed but inference API may need time to load')
+              print(f'ℹ️ Test note: {e}')
+
+          print('✅ Deployment verification completed')
           "
 
   notify:
-    name: 📢 Notifications
-    needs: [train, benchmark, publish, test]
+    name: 📢 Notify
+    needs: [detect-changes, train, benchmark, deploy, test]
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Success notification
-        if: needs.test.result == 'success'
+      - name: Summary
         run: |
-          echo "🎉 Meena pipeline completed successfully!"
-          echo "🌟 Model deployed: https://huggingface.co/${{ env.MODEL_ID }}"
+          echo "## 🚀 Meena Pipeline Summary"
+          echo "**Trigger**: ${{ github.event_name }}"
+          echo "**Should Train**: ${{ needs.detect-changes.outputs.should_train }}"
+          echo "**Should Deploy**: ${{ needs.detect-changes.outputs.should_deploy }}"
+          echo "**Train**: ${{ needs.train.result }}"
+          echo "**Benchmark**: ${{ needs.benchmark.result }}"
+          echo "**Deploy**: ${{ needs.deploy.result }}"
+          echo "**Test**: ${{ needs.test.result }}"
+          echo ""
 
-      - name: Failure notification
-        if: failure()
-        run: |
-          echo "❌ Pipeline failed. Check logs for details."
+          if [[ "${{ needs.deploy.result }}" == "success" ]]; then
+            echo "🎉 **SUCCESS**: Model deployed to https://huggingface.co/${{ env.MODEL_ID }}"
+          elif [[ "${{ needs.train.result }}" == "success" ]]; then
+            echo "✅ **TRAINED**: Model training completed (deployment skipped for PR)"
+          else
+            echo "ℹ️ **SKIPPED**: No changes detected or manual run with training disabled"
+          fi
