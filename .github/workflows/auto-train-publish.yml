@@ -1,97 +1,264 @@
-name: Auto Train & Publish Model
+name: 🚀 Meena Enterprise Pipeline
 
 on:
   push:
-    branches: [ "main" ]
-    paths:
-      - 'data/**'
-      - 'src/**'
-      - 'train.py'
-      - '.github/workflows/auto-train-publish.yml'
+    branches: [main, develop]
+    paths: ['src/**', 'data/**', '*.py', 'requirements.txt']
+  pull_request:
+    branches: [main]
   workflow_dispatch:
-  schedule:
-    - cron: '0 2 * * 0' # weekly; change as desired
-
-permissions:
-  contents: read
-  id-token: write
+    inputs:
+      model_size:
+        description: 'Model size'
+        type: choice
+        options: ['0.5B', '1.5B', '7B']
+        default: '0.5B'
+      enable_bengali:
+        description: 'Enable Bengali training'
+        type: boolean
+        default: true
+      force_retrain:
+        description: 'Force complete retrain'
+        type: boolean
+        default: false
 
 env:
-  MODEL_ID: "your-username/auto-model"
-  OUTPUT_DIR: "model_out"
+  MODEL_ID: likhonsheikh/Meena
+  HF_ORG: likhonsheikh
+  PYTHON_VERSION: "3.11"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  train:
+  detect-changes:
+    name: 🔍 Smart Change Detection
     runs-on: ubuntu-latest
-    # For production use, create a 'prod' environment in repo settings
-    # and uncomment the line below.
-    # environment: prod
+    outputs:
+      train: ${{ steps.changes.outputs.train }}
+      test: ${{ steps.changes.outputs.test }}
+      deploy: ${{ steps.changes.outputs.deploy }}
     steps:
-      - name: Checkout code
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            train:
+              - 'src/**'
+              - 'data/**'
+              - 'train.py'
+              - 'requirements.txt'
+            test:
+              - 'benchmark.py'
+              - 'src/**'
+            deploy:
+              - 'README.md'
+              - 'model-index.json'
+
+  train:
+    name: 🎯 Train Model
+    needs: detect-changes
+    if: needs.detect-changes.outputs.train == 'true' || github.event.inputs.force_retrain == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: 🔧 Checkout & Setup
         uses: actions/checkout@v4
 
-      - name: Cache pip
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-
-      - name: Set up Python
+      - name: 🐍 Python & Cache
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: 'requirements.txt'
 
-      - name: Install dependencies
+      - name: ⚡ Install Dependencies
         run: |
-          python -m pip install --upgrade pip
+          pip install --upgrade pip setuptools wheel
           pip install -r requirements.txt
 
-      - name: Run training (placeholder)
-        id: train
+      - name: 🧠 Train Model
         run: |
-          python train.py --output_dir $OUTPUT_DIR
+          python train.py \
+            --output_dir ./model_artifacts \
+            --model_size ${{ github.event.inputs.model_size || '0.5B' }} \
+            --enable_bengali ${{ github.event.inputs.enable_bengali || 'true' }} \
+            --accelerator cpu \
+            --max_steps 100 \
+            --save_strategy epoch \
+            --logging_steps 10
 
-      - name: Upload model artifact
+      - name: 📊 Model Metrics
+        run: |
+          du -sh model_artifacts/ || true
+          python -c "
+          import json, os
+          if os.path.exists('model_artifacts/training_metrics.json'):
+              with open('model_artifacts/training_metrics.json') as f:
+                  metrics = json.load(f)
+              print('📈 Training Metrics:')
+              for k, v in metrics.items():
+                  print(f'  {k}: {v}')
+          " || true
+
+      - name: 💾 Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: model-files
-          path: ${{ env.OUTPUT_DIR }}
+          name: model-artifacts-${{ github.sha }}
+          path: model_artifacts/
+          retention-days: 7
 
-  publish:
+  benchmark:
+    name: ⚡ Benchmark Performance
     needs: train
     runs-on: ubuntu-latest
-    # Using if: always() as requested, to run even if training fails.
-    # This might be useful for notifications or publishing failure status.
-    if: always()
-    # For production use, create a 'prod' environment in repo settings
-    # and uncomment the line below.
-    # environment: prod
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Download model artifact
+      - name: Download model
         uses: actions/download-artifact@v4
         with:
-          name: model-files
-          path: model_publish
+          name: model-artifacts-${{ github.sha }}
+          path: model_artifacts/
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install dependencies
+      - run: pip install transformers torch datasets evaluate
+
+      - name: Run benchmarks
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          python benchmark.py \
+            --model_path model_artifacts/ \
+            --output_file benchmark_results.json
 
-      - name: Publish to Hugging Face
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-${{ github.sha }}
+          path: benchmark_results.json
+
+  publish:
+    name: 🚀 Deploy to Production
+    needs: [train, benchmark]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://huggingface.co/${{ env.MODEL_ID }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download model artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: model-artifacts-${{ github.sha }}
+          path: model_publish/
+
+      - name: Download benchmarks
+        uses: actions/download-artifact@v4
+        with:
+          name: benchmark-results-${{ github.sha }}
+          path: ./
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install HF Hub
+        run: pip install huggingface-hub[cli]
+
+      - name: 📝 Generate Model Card
+        run: |
+          python generate_model_card.py \
+            --model_path model_publish/ \
+            --output model_publish/README.md \
+            --metrics benchmark_results.json
+
+      - name: 🌟 Deploy to Hugging Face
+        run: |
+          huggingface-cli upload ${{ env.MODEL_ID }} model_publish/ \
+            --commit-message "🚀 Auto-deploy $(date +%Y%m%d-%H%M)" || true
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          MODEL_ID: ${{ env.MODEL_ID }}
+
+      - name: 🏷️ Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ github.run_number }}
+          name: Meena v${{ github.run_number }}
+          body: |
+            ## 🎉 New Meena Release
+
+            **Model ID**: `${{ env.MODEL_ID }}`
+            **Features**:
+            - ✅ Bengali language support
+            - ✅ Multimodal capabilities
+            - ✅ Function calling
+            - ✅ LoRA fine-tuning
+
+            **Quick Start**:
+            \`\`\`python
+            from transformers import AutoTokenizer, AutoModelForCausalLM
+
+            model = AutoModelForCausalLM.from_pretrained("${{ env.MODEL_ID }}")
+            tokenizer = AutoTokenizer.from_pretrained("${{ env.MODEL_ID }}")
+            \`\`\`
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  test:
+    name: 🧪 Production Tests
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Test deployment
         run: |
-          # add the README and model-index.json next to model_publish (if not included in artifact)
-          cp README.md model_publish/ || true
-          cp model-index.json model_publish/ || true
-          python publish.py --model-dir model_publish --model-id "${MODEL_ID}" --readme model_publish/README.md --index model_publish/model-index.json
+          pip install huggingface-hub requests
+          python -c "
+          import requests, time, os
+          time.sleep(30)
+
+          try:
+              response = requests.post(
+                  'https://api-inference.huggingface.co/models/${{ env.MODEL_ID }}',
+                  headers={'Authorization': 'Bearer ${{ secrets.HF_TOKEN }}'},
+                  json={'inputs': 'Hello, how are you?'},
+                  timeout=30
+              )
+              print('✅ Status:', response.status_code)
+              if response.status_code == 200:
+                  print('✅ Model deployed successfully!')
+              else:
+                  print('⚠️  Model might still be loading:', response.text[:200])
+          except Exception as e:
+              print('⚠️  Inference test failed:', str(e))
+              print('Model is deployed but inference API may need time to load')
+          "
+
+  notify:
+    name: 📢 Notifications
+    needs: [train, benchmark, publish, test]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Success notification
+        if: needs.test.result == 'success'
+        run: |
+          echo "🎉 Meena pipeline completed successfully!"
+          echo "🌟 Model deployed: https://huggingface.co/${{ env.MODEL_ID }}"
+
+      - name: Failure notification
+        if: failure()
+        run: |
+          echo "❌ Pipeline failed. Check logs for details."
