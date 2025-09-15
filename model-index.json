@@ -1,0 +1,20 @@
+{
+  "language": ["en"],
+  "license": "apache-2.0",
+  "tags": ["multimodal", "audio", "image", "video", "text", "meena", "inference"],
+  "pipeline_tag": "text-generations",
+  "library_name": "transformers",
+  "model-index": {
+    "name": "meena",
+    "results": [],
+    "tags": {
+      "inputs": ["audio", "image", "video", "text"],
+      "output": "text",
+      "input_token_limit": 2097152,
+      "output_token_limit": 8192,
+      "max_images_per_prompt": 7200,
+      "max_video_length_hours": 2,
+      "max_audio_length_hours": 19
+    }
+  }
+}
