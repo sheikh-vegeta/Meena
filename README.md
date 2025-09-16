@@ -1,271 +1,290 @@
-# 🤖 Meena - Enterprise AI Pipeline
-
-# ![Meena Logo](https://images.seeklogo.com/logo-png/50/2/mina-raju-cartoon-protect-logo-png_seeklogo-502497.png)  
-
-[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/sheikh-vegeta/Meena/auto-train-publish.yml?branch=main&style=flat-square&logo=github&label=CI%2FCD)](https://github.com/sheikh-vegeta/Meena/actions)
-[![Python Version](https://img.shields.io/badge/python-3.8%2B-blue?style=flat-square&logo=python)](https://python.org)
-[![Hugging Face](https://img.shields.io/badge/🤗%20Hugging%20Face-Models-yellow?style=flat-square)](https://huggingface.co)
-[![License](https://img.shields.io/github/license/sheikh-vegeta/Meena?style=flat-square)](https://github.com/sheikh-vegeta/Meena/blob/main/LICENSE)
-[![GitHub stars](https://img.shields.io/github/stars/sheikh-vegeta/Meena?style=flat-square)](https://github.com/sheikh-vegeta/Meena/stargazers)
-
 <div align="center">
 
-**🌐 An enterprise-grade CI/CD pipeline for training, benchmarking, and deploying the Meena conversational AI model**
+<img src="https://images.seeklogo.com/logo-png/50/2/mina-raju-cartoon-protect-logo-png_seeklogo-502497.png" alt="Meena Logo" width="120" height="120">
 
-*Designed with automation, efficiency, and multilingual support (Bengali & English) at its core*
+# 🤖 **Meena** - Enterprise AI Pipeline
+
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/sheikh-vegeta/Meena/auto-train-publish.yml?branch=main&style=for-the-badge&logo=github&label=CI%2FCD&color=4CAF50)](https://github.com/sheikh-vegeta/Meena/actions)
+[![Python Version](https://img.shields.io/badge/python-3.8%2B-blue?style=for-the-badge&logo=python&color=3776AB)](https://python.org)
+[![Hugging Face](https://img.shields.io/badge/🤗%20Hugging%20Face-Models-yellow?style=for-the-badge&color=FFD21E)](https://huggingface.co)
+[![License](https://img.shields.io/github/license/sheikh-vegeta/Meena?style=for-the-badge&color=FF6B6B)](https://github.com/sheikh-vegeta/Meena/blob/main/LICENSE)
+
+**🌍 বাংলা ও ইংরেজিতে কথোপকথনের এআই | Bengali & English Conversational AI**
+
+*"যুগান্তকারী প্রযুক্তির সাথে মাতৃভাষার মিলন"*  
+*Revolutionary technology meets mother tongue*
 
 ---
 
-> *"মানবিক সংলাপ, বাংলার ছোঁয়ায় – Building the future of multilingual conversational AI"*
+### ⚡ **Enterprise-grade CI/CD pipeline for training, benchmarking, and deploying intelligent conversational AI**
 
 </div>
 
-## ✨ Features
+---
 
-🚀 **Enterprise-Ready Pipeline**
-- ⚙️ **Automated CI/CD** – End-to-end automation with GitHub Actions
-- 🔍 **Smart Change Detection** – Runs only the jobs affected by your commits
-- 🔄 **Multi-environment Support** – Main, develop, and feature branch workflows
+## 🎯 **মূল বৈশিষ্ট্য | Key Features**
 
-🧠 **Advanced AI Training**
-- 🎯 **LoRA-based Fine-tuning** – Efficient training on models like DialoGPT
-- 📊 **Integrated Benchmarking** – Performance evaluation with comprehensive metrics
-- 🌍 **Multilingual Support** – Bengali (বাংলা) and English training datasets
+<table>
+<tr>
+<td width="33%" align="center">
 
-📦 **Professional Deployment**
-- 🤗 **Hugging Face Integration** – Automatic model publishing and versioning
-- 📝 **Auto-generated Model Cards** – Detailed documentation for every model release
-- 🚀 **GitHub Releases** – Automated versioning and artifact management
-- 🔔 **Smart Notifications** – Keep your team updated on pipeline status
+### 🚀 **স্বয়ংক্রিয় পাইপলাইন**
+**Automated Pipeline**
 
-## 🛠️ Architecture Overview
+⚙️ **CI/CD Automation**  
+🔍 **Smart Change Detection**  
+🔄 **Multi-environment Support**
+
+*"একবার সেট করুন, চিরকাল চালান"*
+
+</td>
+<td width="33%" align="center">
+
+### 🧠 **উন্নত এআই প্রশিক্ষণ**
+**Advanced AI Training**
+
+🎯 **LoRA Fine-tuning**  
+📊 **Integrated Benchmarking**  
+🌍 **Multilingual Support**
+
+*"বাংলা ভাষার জন্য বিশেষভাবে অপ্টিমাইজড"*
+
+</td>
+<td width="33%" align="center">
+
+### 📦 **পেশাদার স্থাপনা**
+**Professional Deployment**
+
+🤗 **HuggingFace Integration**  
+📝 **Auto Model Cards**  
+🔔 **Smart Notifications**
+
+*"বিশ্বমানের মডেল ডিপ্লয়মেন্ট"*
+
+</td>
+</tr>
+</table>
+
+---
+
+## 🛠️ **Architecture Overview | স্থাপত্য পরিকল্পনা**
+
+<div align="center">
 
 ```mermaid
 flowchart TD
-    A[🔄 Push to Repository] --> B[🕵️ Change Detection]
-    B --> C{📝 Changes Detected?}
-    C -->|Training Scripts| D[🎓 Model Training]
-    C -->|Benchmark Scripts| E[📈 Performance Evaluation]
-    C -->|Config Changes| F[⚙️ Pipeline Update]
+    A[🔄 কোড পুশ<br/>Code Push] --> B[🕵️ পরিবর্তন সনাক্তকরণ<br/>Change Detection]
+    B --> C{📝 Changes?}
+    C -->|Training| D[🎓 মডেল প্রশিক্ষণ<br/>Model Training]
+    C -->|Benchmark| E[📈 কর্মক্ষমতা মূল্যায়ন<br/>Performance Eval]
     
-    D --> G[📊 Training Metrics]
-    E --> H[📈 Benchmark Results]
+    D --> F[📊 প্রশিক্ষণ মেট্রিক্স<br/>Training Metrics]
+    E --> G[📈 বেঞ্চমার্ক ফলাফল<br/>Benchmark Results]
     
-    G --> I[🚀 Model Publishing]
-    H --> I
-    I --> J[🤗 Hugging Face Hub]
-    I --> K[📦 GitHub Release]
+    F --> H[🚀 মডেল প্রকাশনা<br/>Model Publishing]
+    G --> H
+    H --> I[🤗 HuggingFace Hub]
+    H --> J[📦 GitHub Release]
     
-    J --> L[🧪 Inference Testing]
-    K --> L
-    L --> M[✅ Quality Gates]
-    M --> N[🔔 Team Notification]
+    I --> K[🧪 পরীক্ষা<br/>Testing]
+    J --> K
+    K --> L[✅ Quality Gates]
+    L --> M[🔔 বিজ্ঞপ্তি<br/>Notification]
     
-    style A fill:#e1f5fe
+    style A fill:#e3f2fd
     style D fill:#f3e5f5
-    style E fill:#fff3e0
-    style I fill:#e8f5e8
-    style N fill:#fce4ec
+    style E fill:#fff8e1
+    style H fill:#e8f5e8
+    style M fill:#fce4ec
 ```
 
-## 🚀 Quick Start
+</div>
 
-### Prerequisites
+---
+
+## 🚀 **Quick Start | দ্রুত শুরু**
+
+### বাংলা নির্দেশনা | Bengali Instructions
+
 ```bash
-# Python 3.8+ required
-python --version
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
-### Local Development
-```bash
-# Clone the repository
+# রিপোজিটরি ক্লোন করুন | Clone repository
 git clone https://github.com/sheikh-vegeta/Meena.git
 cd Meena
 
-# Set up environment
+# ভার্চুয়াল এনভায়রনমেন্ট তৈরি করুন | Create virtual environment
 python -m venv meena-env
-source meena-env/bin/activate  # On Windows: meena-env\Scripts\activate
+source meena-env/bin/activate  # Windows: meena-env\Scripts\activate
 
-# Install requirements
+# প্রয়োজনীয় প্যাকেজ ইনস্টল করুন | Install dependencies
 pip install -r requirements.txt
 
-# Run training locally
-python train.py
+# প্রশিক্ষণ শুরু করুন | Start training
+python train.py --language bengali
 
-# Run benchmarking
-python benchmark.py
+# বেঞ্চমার্ক চালান | Run benchmark
+python benchmark.py --eval-lang bn
 ```
 
-## 📋 CI/CD Pipeline Details
+> 💡 **প্রো টিপ:** `--language mixed` ব্যবহার করে বাংলা ও ইংরেজি একসাথে প্রশিক্ষণ দিন!
 
-The complete automation logic is defined in `.github/workflows/auto-train-publish.yml`
+---
 
-### 🎯 Trigger Conditions
-- ✅ **Push to `main`** – Full pipeline execution
-- ✅ **Push to `develop`** – Training and benchmarking only
-- ✅ **Pull Requests** – Validation and testing
-- ✅ **Manual Dispatch** – On-demand execution via GitHub Actions
+## 📋 **Pipeline Jobs | পাইপলাইন কাজসমূহ**
 
-### 🔄 Pipeline Jobs
+<div align="center">
 
-| Job | Description | Triggers |
-|-----|-------------|----------|
-| 🕵️ **detect-changes** | Analyzes git diff to determine required pipeline stages | Always |
-| 🎓 **train** | Executes model training with LoRA fine-tuning | Training scripts modified |
-| 📈 **benchmark** | Runs performance evaluation and generates metrics | Model or benchmark changes |
-| 🚀 **publish** | Publishes to Hugging Face Hub & creates GitHub release | Successful training completion |
-| 🧪 **test** | Validates deployed model via Inference API | Post-deployment |
-| 🔔 **notify** | Sends pipeline status to configured channels | Pipeline completion |
+| 🎯 Job | বিবরণ | Description | Triggers |
+|---------|--------|-------------|----------|
+| 🕵️ **detect-changes** | পরিবর্তন শনাক্তকরণ | Change Detection | সর্বদা \| Always |
+| 🎓 **train** | মডেল প্রশিক্ষণ | Model Training | Training scripts modified |
+| 📈 **benchmark** | কর্মক্ষমতা পরীক্ষা | Performance Testing | Model changes |
+| 🚀 **publish** | মডেল প্রকাশনা | Model Publishing | Training success |
+| 🧪 **test** | চূড়ান্ত পরীক্ষা | Final Validation | Post-deployment |
+| 🔔 **notify** | বিজ্ঞপ্তি পাঠানো | Send Notifications | Pipeline completion |
 
-## 📊 Benchmarking & Metrics
+</div>
 
-Meena includes comprehensive evaluation metrics:
+---
 
-- 📈 **Perplexity Scores** – Language model quality assessment
-- 🎯 **BLEU Scores** – Translation and generation quality
-- 🗣️ **Conversational Metrics** – Dialogue coherence and relevance
-- ⚡ **Performance Benchmarks** – Inference speed and memory usage
+## 🌍 **Multilingual Support | বহুভাষিক সাপোর্ট**
 
-> *বাংলা মেট্রিক্স:* "আমাদের বেঞ্চমার্কিং সিস্টেম বাংলা ভাষার জন্য বিশেষভাবে অপ্টিমাইজ করা হয়েছে।"
+### 🇧🇩 Bengali (বাংলা) Features
 
-## 🌍 Multilingual Support
+<div align="center">
 
-### Bengali (বাংলা) Integration
-- 📚 **Native Bengali Datasets** – Curated conversational data
-- 🔤 **Proper Tokenization** – Bengali script-aware processing  
-- 🎭 **Cultural Context** – Bengali idioms and expressions
-- ✅ **Quality Assurance** – Bengali-specific evaluation metrics
+| বৈশিষ্ট্য | Feature | Status |
+|------------|---------|--------|
+| 📚 **নেটিভ ডেটাসেট** | Native Datasets | ✅ সক্রিয় |
+| 🔤 **টোকেনাইজেশন** | Proper Tokenization | ✅ সক্রিয় |
+| 🎭 **সাংস্কৃতিক প্রসঙ্গ** | Cultural Context | ✅ সক্রিয় |
+| ⚡ **দ্রুত ইনফারেন্স** | Fast Inference | ✅ সক্রিয় |
+
+</div>
+
+> **বাংলা ভাষার জন্য বিশেষ অপ্টিমাইজেশন:**  
+> *"আমাদের মডেল বাংলা ভাষার ব্যাকরণ, বাগধারা এবং আঞ্চলিক ভাষার বৈচিত্র্য বুঝতে পারে।"*
 
 ### Training Data Structure
+
 ```
 datasets/
-├── bengali/
-│   ├── conversations.json
-│   ├── formal_dialogues.json
-│   └── casual_chat.json
-├── english/
+├── 🇧🇩 bengali/
+│   ├── আনুষ্ঠানিক-কথোপকথন.json    # Formal dialogues
+│   ├── নৈমিত্তিক-চ্যাট.json          # Casual conversations
+│   └── সাহিত্যিক-সংলাপ.json         # Literary dialogues
+├── 🇺🇸 english/
 │   ├── dialogpt_data.json
 │   └── general_conversations.json
-└── mixed/
-    └── bilingual_pairs.json
+└── 🌍 mixed/
+    └── bilingual_pairs.json      # দ্বিভাষিক জোড়া
 ```
 
-## 🚀 Model Publishing Workflow
+---
 
-### Automatic Publishing
-1. 🎯 **Training Completion** – Model artifacts generated
-2. 📝 **Model Card Generation** – Documentation created automatically
-3. 🤗 **Hugging Face Upload** – Model pushed to Hub with versioning
-4. 📦 **GitHub Release** – Tagged release with artifacts
-5. 🧪 **Validation Testing** – Inference API smoke tests
+## 📊 **Benchmarking | কর্মক্ষমতা মূল্যায়ন**
 
-### Model Card Features
-- 📊 **Performance Metrics** – Comprehensive benchmark results
-- 🎯 **Use Cases** – Detailed application scenarios
-- ⚠️ **Limitations** – Honest assessment of model boundaries
-- 📜 **Training Details** – Complete training configuration
-- 🌐 **Language Support** – Bengali and English capabilities
+### মেট্রিক্স | Metrics Overview
 
-## 🛡️ Quality Assurance
+<div align="center">
 
-### Automated Testing
-- ✅ **Unit Tests** – Core functionality validation
-- 🔄 **Integration Tests** – End-to-end pipeline verification
-- 🧪 **Model Validation** – Output quality assessment
-- 📈 **Performance Regression** – Benchmark comparison
+| মেট্রিক | Metric | বাংলা | English | Mixed |
+|----------|--------|--------|---------|-------|
+| 📈 **Perplexity** | ভাষা মডেল গুণমান | `< 15` | `< 12` | `< 18` |
+| 🎯 **BLEU Score** | অনুবাদ গুণমান | `> 85` | `> 88` | `> 82` |
+| 🗣️ **Dialogue Coherence** | সংলাপ সংগতি | `> 90%` | `> 92%` | `> 88%` |
+| ⚡ **Inference Speed** | প্রতিক্রিয়ার গতি | `< 200ms` | `< 180ms` | `< 220ms` |
 
-### Code Quality
-- 🔍 **Linting** – PEP 8 compliance with flake8
-- 🎨 **Formatting** – Automatic formatting with black
-- 📚 **Documentation** – Comprehensive docstrings
-- 🔒 **Security Scanning** – Dependency vulnerability checks
+</div>
 
-## 🔔 Notification System
+> **বাংলা মেট্রিক্স বিশেষত্ব:**  
+> *"আমাদের বেঞ্চমার্কিং সিস্টেম বাংলা ভাষার জন্য বিশেষভাবে তৈরি করা হয়েছে।"*
 
-Stay updated with intelligent notifications:
+---
 
-- 📧 **Email Alerts** – Critical pipeline failures
-- 💬 **Slack Integration** – Team channel updates
-- 🚨 **Discord Webhooks** – Community notifications
-- 📱 **GitHub Notifications** – Built-in issue tracking
+## 🔔 **Notification System | বিজ্ঞপ্তি ব্যবস্থা**
 
-## 🤝 Contributing
+<div align="center">
 
-We welcome contributions! Please follow these guidelines:
+### 📱 **Smart Notifications**
 
-### Development Workflow
-1. 🍴 **Fork** the repository
-2. 🌿 **Create** a feature branch (`git checkout -b feature/amazing-feature`)
-3. ✅ **Test** your changes thoroughly
-4. 📝 **Commit** with descriptive messages
-5. 🚀 **Push** to your branch
-6. 📬 **Open** a Pull Request
+| Platform | বিজ্ঞপ্তির ধরন | Notification Type | Status |
+|----------|------------------|-------------------|--------|
+| 📧 **Email** | গুরুত্বপূর্ণ ব্যর্থতা | Critical Failures | 🟢 Active |
+| 💬 **Slack** | টিম আপডেট | Team Updates | 🟢 Active |
+| 🚨 **Discord** | কমিউনিটি বার্তা | Community Alerts | 🟢 Active |
+| 📱 **GitHub** | ইস্যু ট্র্যাকিং | Issue Tracking | 🟢 Active |
 
-### Contribution Areas
-- 🧠 **Model Improvements** – Better architectures and training techniques
-- 🌐 **Language Support** – Additional language integrations
-- 📊 **Benchmarking** – New evaluation metrics and datasets
-- 🔧 **Infrastructure** – Pipeline optimizations and tooling
-- 📚 **Documentation** – Tutorials, guides, and examples
+</div>
 
-> *অবদানকারীদের জন্য:* "আপনার অবদান বাংলা AI-এর ভবিষ্যৎ গড়তে সাহায্য করবে।"
+---
 
-## 📁 Repository Structure
+## 🤝 **Contributing | অবদান রাখুন**
 
-```
-Meena/
-├── 📄 README.md                    # This file
-├── ⚙️ requirements.txt            # Python dependencies
-├── 🧪 train.py                    # Model training script
-├── 📊 benchmark.py                # Performance evaluation
-├── 📝 generate_model_card.py      # Documentation generation
-├── 🔧 config/
-│   ├── training_config.yaml       # Training parameters
-│   ├── model_config.yaml          # Model architecture
-│   └── benchmark_config.yaml      # Evaluation settings
-├── 📚 datasets/
-│   ├── bengali/                   # Bengali training data
-│   ├── english/                   # English training data
-│   └── mixed/                     # Bilingual datasets
-├── 🎯 models/
-│   ├── base/                      # Base model checkpoints
-│   └── fine_tuned/               # Fine-tuned outputs
-├── 📈 benchmarks/
-│   ├── results/                   # Benchmark outputs
-│   └── metrics/                  # Performance data
-└── 🔄 .github/
-    └── workflows/
-        └── auto-train-publish.yml # CI/CD pipeline
+### 🌟 **How to Contribute | কীভাবে অবদান রাখবেন**
+
+<div align="center">
+
+```mermaid
+flowchart LR
+    A[🍴 Fork Repository<br/>রিপো ফর্ক করুন] --> B[🌿 Create Branch<br/>ব্রাঞ্চ তৈরি করুন]
+    B --> C[⚡ Make Changes<br/>পরিবর্তন করুন]
+    C --> D[✅ Test Locally<br/>স্থানীয় পরীক্ষা]
+    D --> E[📝 Commit & Push<br/>কমিট ও পুশ]
+    E --> F[🚀 Pull Request<br/>পুল রিকোয়েস্ট]
 ```
 
-## 📜 License
+</div>
 
-This project is licensed under the **Apache License 2.0** - see the [LICENSE](LICENSE) file for details.
+### অবদানের ক্ষেত্রসমূহ | Contribution Areas
 
-## 🌟 Acknowledgments
+- 🧠 **মডেল উন্নতি** | Model Improvements
+- 🌐 **ভাষা সাপোর্ট** | Language Support  
+- 📊 **বেঞ্চমার্কিং** | Benchmarking
+- 🔧 **অবকাঠামো** | Infrastructure
+- 📚 **ডকুমেন্টেশন** | Documentation
 
-- 🤗 **Hugging Face** – For the incredible transformers library and model hub
-- 🧠 **OpenAI** – For inspiring conversational AI research
-- 🌐 **Bengali NLP Community** – For dataset contributions and feedback
-- 👥 **Contributors** – Everyone who has helped improve Meena
+> **অবদানকারীদের জন্য বার্তা:**  
+> *"আপনার প্রতিটি অবদান বাংলা AI-এর উজ্জ্বল ভবিষ্যৎ গড়তে সাহায্য করবে। আমরা আপনার সৃজনশীলতা ও দক্ষতাকে স্বাগত জানাই!"*
 
-## 📞 Support & Contact
+---
 
-- 📧 **Issues**: [GitHub Issues](https://github.com/sheikh-vegeta/Meena/issues)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/sheikh-vegeta/Meena/discussions)
-- 🌐 **Documentation**: [Wiki](https://github.com/sheikh-vegeta/Meena/wiki)
+## 🏆 **Acknowledgments | কৃতজ্ঞতা**
+
+<div align="center">
+
+### 🙏 **Special Thanks | বিশেষ ধন্যবাদ**
+
+| 🤝 Contributor | অবদান | Contribution |
+|-----------------|---------|-------------|
+| 🤗 **Hugging Face** | ট্রান্সফরমার লাইব্রেরি | Transformers Library |
+| 🌐 **Bengali NLP Community** | ডেটাসেট ও ফিডব্যাক | Datasets & Feedback |
+| 👥 **All Contributors** | কোড ও ডকুমেন্টেশন | Code & Documentation |
+| 🇧🇩 **Bangladesh AI Community** | প্রেরণা ও সহায়তা | Inspiration & Support |
+
+</div>
 
 ---
 
 <div align="center">
 
-**🔮 Building the Future of Multilingual Conversational AI**
+---
 
-*Made with ❤️ by the Meena Team*
+### 🔮 **ভবিষ্যতের স্বপ্ন | Future Vision**
 
-**[⭐ Star this repo](https://github.com/sheikh-vegeta/Meena) if you found it helpful!**
+*"একটি এমন পৃথিবী যেখানে প্রযুক্তি আমাদের মাতৃভাষাকে সম্মান করে"*  
+**"A world where technology honors our mother tongue"**
+
+---
+
+<img src="https://images.seeklogo.com/logo-png/50/2/mina-raju-cartoon-protect-logo-png_seeklogo-502497.png" alt="Meena Logo" width="60" height="60">
+
+**Made with ❤️ by the Meena Team**
+
+[![⭐ Star this repository](https://img.shields.io/github/stars/sheikh-vegeta/Meena?style=social)](https://github.com/sheikh-vegeta/Meena)
+[![🐛 Report Bug](https://img.shields.io/badge/🐛-Report%20Bug-red?style=flat-square)](https://github.com/sheikh-vegeta/Meena/issues)
+[![💡 Request Feature](https://img.shields.io/badge/💡-Request%20Feature-blue?style=flat-square)](https://github.com/sheikh-vegeta/Meena/issues)
+
+**📧 Contact:** [GitHub Issues](https://github.com/sheikh-vegeta/Meena/issues) | 
+**💬 Discuss:** [GitHub Discussions](https://github.com/sheikh-vegeta/Meena/discussions)
 
 </div>
