@@ -15,16 +15,13 @@ from transformers import (
 from peft import LoraConfig, get_peft_model, TaskType
 from datasets import Dataset
 
+from src.meena_model import MeenaModel
+
 class MeenaTrainer:
     def __init__(self, args):
         self.args = args
-        self.model_configs = {
-            "0.5B": "microsoft/DialoGPT-small",
-            "1.5B": "microsoft/DialoGPT-medium",
-            "7B": "microsoft/DialoGPT-large"
-        }
-        self.base_model = self.model_configs[args.model_size]
         self.device = self._setup_device()
+        self.model_wrapper = MeenaModel(model_size=args.model_size)
 
     def _setup_device(self):
         if self.args.accelerator == "gpu" and torch.cuda.is_available():
@@ -61,51 +58,14 @@ class MeenaTrainer:
 
         return Dataset.from_list(all_data)
 
-    def setup_model_and_tokenizer(self):
-        """Setup model with tokenizer"""
-        print(f"🚀 Loading {self.base_model}...")
-
-        # Load tokenizer
-        tokenizer = AutoTokenizer.from_pretrained(self.base_model)
-        if tokenizer.pad_token is None:
-            tokenizer.pad_token = tokenizer.eos_token
-        tokenizer.padding_side = "left"
-
-        # Load model
-        model = AutoModelForCausalLM.from_pretrained(
-            self.base_model,
-            torch_dtype=torch.float32,
-            low_cpu_mem_usage=True
-        )
-
-        return model, tokenizer
-
-    def setup_lora(self, model):
-        """Configure LoRA for efficient fine-tuning"""
-        target_modules = ["c_attn", "c_proj", "c_fc"]  # DialoGPT modules
-
-        lora_config = LoraConfig(
-            task_type=TaskType.CAUSAL_LM,
-            inference_mode=False,
-            r=16,
-            lora_alpha=32,
-            lora_dropout=0.1,
-            target_modules=target_modules,
-            bias="none"
-        )
-
-        model = get_peft_model(model, lora_config)
-        model.print_trainable_parameters()
-        return model
-
     def train(self):
         """Main training loop"""
         print("🎯 Starting Meena training...")
         start_time = time.time()
 
         # Setup
-        model, tokenizer = self.setup_model_and_tokenizer()
-        model = self.setup_lora(model)
+        model = self.model_wrapper.get_model()
+        tokenizer = self.model_wrapper.get_tokenizer()
         dataset = self.get_bengali_english_data()
 
         # Tokenize data
@@ -185,7 +145,7 @@ class MeenaTrainer:
             "train_time": time.time() - start_time,
             "model_size": self.args.model_size,
             "bengali_enabled": self.args.enable_bengali,
-            "base_model": self.base_model
+            "base_model": self.model_wrapper.base_model_name
         }
 
         with open(output_dir / "training_metrics.json", "w") as f:
@@ -195,9 +155,9 @@ class MeenaTrainer:
         print(f"📁 Model saved to: {output_dir}")
 
         # Test generation
-        self._test_generation(model, tokenizer)
+        self._test_generation()
 
-    def _test_generation(self, model, tokenizer):
+    def _test_generation(self):
         """Quick generation test"""
         print("\n🧪 Testing generation...")
 
@@ -208,6 +168,8 @@ class MeenaTrainer:
         if self.args.enable_bengali:
             test_prompts.append("মানব: আপনি কেমন আছেন?\nসহায়ক:")
 
+        model = self.model_wrapper.get_model()
+        tokenizer = self.model_wrapper.get_tokenizer()
         model.eval()
         with torch.no_grad():
             for prompt in test_prompts:
