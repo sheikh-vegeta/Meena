@@ -1,5 +1,7 @@
 # 🤖 Meena - Enterprise AI Pipeline
 
+# ![Meena Logo](https://images.seeklogo.com/logo-png/50/2/mina-raju-cartoon-protect-logo-png_seeklogo-502497.png)  
+
 [![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/sheikh-vegeta/Meena/auto-train-publish.yml?branch=main&style=flat-square&logo=github&label=CI%2FCD)](https://github.com/sheikh-vegeta/Meena/actions)
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue?style=flat-square&logo=python)](https://python.org)
 [![Hugging Face](https://img.shields.io/badge/🤗%20Hugging%20Face-Models-yellow?style=flat-square)](https://huggingface.co)
