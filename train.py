@@ -21,7 +21,19 @@ class MeenaTrainer:
     def __init__(self, args):
         self.args = args
         self.device = self._setup_device()
-        self.model_wrapper = MeenaModel(model_size=args.model_size)
+        lora_config = {
+            'r': 16,
+            'lora_alpha': 32,
+            'lora_dropout': 0.1,
+            'target_modules': ["c_attn", "c_proj", "c_fc"],
+            'bias': "none",
+            'task_type': TaskType.CAUSAL_LM,
+            'inference_mode': False
+        } if self.args.use_lora else None
+        self.model_wrapper = MeenaModel(
+            model_size=args.model_size,
+            lora_config_params=lora_config
+        )
 
     def _setup_device(self):
         if self.args.accelerator == "gpu" and torch.cuda.is_available():
@@ -32,31 +44,36 @@ class MeenaTrainer:
             print("💻 Using CPU")
         return device
 
-    def get_bengali_english_data(self) -> Dataset:
-        """Generate high-quality Bengali + English training data"""
+    def load_dataset_from_language_or_mixed(self) -> Dataset:
+        """Load dataset from language or mixed"""
+        data_path = Path("datasets")
+        all_texts = []
 
-        # Bengali conversations
-        bengali_data = [
-            {"text": "মানব: আপনি কে?\nসহায়ক: আমি মীনা, বাংলাদেশ থেকে একটি এআই সহায়ক। আমি বাংলা ও ইংরেজি উভয় ভাষায় কথা বলতে পারি।"},
-            {"text": "মানব: বাংলাদেশের রাজধানী কি?\nসহায়ক: বাংলাদেশের রাজধানী ঢাকা। এটি দেশের বৃহত্তম শহর এবং অর্থনৈতিক কেন্দ্র।"},
-            {"text": "মানব: আমাকে একটি গল্প বলুন।\nসহায়ক: একদিন এক ছোট মেয়ে তার বাগানে ফুল রোপণ করছিল। প্রতিদিন সে যত্ন নিত, পানি দিত। কয়েক সপ্তাহ পর সুন্দর ফুল ফুটল।"},
-            {"text": "মানব: প্রযুক্তি সম্পর্কে বলুন।\nসহায়ক: প্রযুক্তি আমাদের জীবনকে সহজ করেছে। কৃত্রিম বুদ্ধিমত্তা, মোবাইল ফোন, ইন্টারনেট - এসব আমাদের দৈনন্দিন কাজে সাহায্য করে।"},
-        ]
+        languages = []
+        if self.args.language == 'mixed':
+            languages.extend(['bengali', 'english', 'mixed'])
+        else:
+            languages.append(self.args.language)
 
-        # English conversations
-        english_data = [
-            {"text": "Human: What makes you special?\nAssistant: I'm Meena, an AI assistant from Bangladesh. I understand both Bengali and English, and I'm designed to be helpful, harmless, and honest."},
-            {"text": "Human: Tell me about multimodal AI.\nAssistant: Multimodal AI can process different types of input - text, images, audio, and video. This allows for richer interactions and more comprehensive understanding."},
-            {"text": "Human: How can I learn programming?\nAssistant: Start with Python - it's beginner-friendly. Practice daily, build small projects, and don't be afraid to make mistakes. Consistency is key to mastering programming."},
-            {"text": "Human: Explain machine learning simply.\nAssistant: Machine learning is teaching computers to find patterns in data and make predictions. Like showing a child many pictures of cats until they can recognize cats on their own."},
-        ]
+        for lang in languages:
+            lang_path = data_path / lang
+            if not lang_path.exists():
+                print(f"⚠️ Warning: Directory not found: {lang_path}")
+                continue
 
-        # Combine datasets based on settings
-        all_data = english_data * 20  # 80 samples
-        if self.args.enable_bengali:
-            all_data += bengali_data * 25  # 100 Bengali samples
+            for file_path in lang_path.glob("*.json"):
+                try:
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                        all_texts.extend([item['text'] for item in data if 'text' in item])
+                except (json.JSONDecodeError, IOError) as e:
+                    print(f"⚠️ Error reading {file_path}: {e}")
 
-        return Dataset.from_list(all_data)
+        if not all_texts:
+            raise ValueError("No training data found! Check your 'datasets' directory.")
+
+        return Dataset.from_dict({"text": all_texts})
+
 
     def train(self):
         """Main training loop"""
@@ -66,7 +83,7 @@ class MeenaTrainer:
         # Setup
         model = self.model_wrapper.get_model()
         tokenizer = self.model_wrapper.get_tokenizer()
-        dataset = self.get_bengali_english_data()
+        dataset = self.load_dataset_from_language_or_mixed()
 
         # Tokenize data
         def tokenize_function(examples):
@@ -102,7 +119,7 @@ class MeenaTrainer:
             save_strategy=self.args.save_strategy,
             save_steps=self.args.save_steps if self.args.save_strategy == "steps" else 500,
             logging_steps=self.args.logging_steps,
-            eval_strategy="no",
+            evaluation_strategy="no",
 
             # Misc
             report_to="none",
@@ -144,7 +161,8 @@ class MeenaTrainer:
             "train_samples": len(dataset),
             "train_time": time.time() - start_time,
             "model_size": self.args.model_size,
-            "bengali_enabled": self.args.enable_bengali,
+            "language": self.args.language,
+            "use_lora": self.args.use_lora,
             "base_model": self.model_wrapper.base_model_name
         }
 
@@ -161,12 +179,14 @@ class MeenaTrainer:
         """Quick generation test"""
         print("\n🧪 Testing generation...")
 
-        test_prompts = [
-            "Human: Hello, how are you?\nAssistant:",
-        ]
-
-        if self.args.enable_bengali:
+        test_prompts = []
+        if self.args.language in ['english', 'mixed']:
+            test_prompts.append("Human: Hello, how are you?\nAssistant:")
+        if self.args.language in ['bengali', 'mixed']:
             test_prompts.append("মানব: আপনি কেমন আছেন?\nসহায়ক:")
+
+        if not test_prompts:
+             test_prompts.append("Human: Hello, how are you?\nAssistant:")
 
         model = self.model_wrapper.get_model()
         tokenizer = self.model_wrapper.get_tokenizer()
@@ -189,20 +209,21 @@ class MeenaTrainer:
                     print(f"Generation test note: {e}")
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--output_dir", default="./model_artifacts", help="Output directory")
-    parser.add_argument("--model_size", choices=["0.5B", "1.5B", "7B"], default="0.5B")
-    parser.add_argument("--enable_bengali", type=lambda x: x.lower() == 'true', default=True)
-    parser.add_argument("--accelerator", choices=["cpu", "gpu", "mps"], default="cpu")
-    parser.add_argument("--max_steps", type=int, default=-1)
-    parser.add_argument("--save_strategy", default="epoch")
-    parser.add_argument("--save_steps", type=int, default=500)
-    parser.add_argument("--logging_steps", type=int, default=10)
+    parser = argparse.ArgumentParser(description="🇧🇩 Meena: Advanced Multilingual AI Trainer")
+    parser.add_argument("--output_dir", default="./model_artifacts", help="Output directory for model artifacts")
+    parser.add_argument("--model_size", choices=["0.5B", "1.5B", "7B"], default="0.5B", help="Size of the DialoGPT model to use")
+    parser.add_argument("--language", choices=["bengali", "english", "mixed"], default="mixed", help="Language dataset to use for training")
+    parser.add_argument("--use_lora", type=lambda x: x.lower() == 'true', default=True, help="Enable/disable LoRA fine-tuning")
+    parser.add_argument("--accelerator", choices=["cpu", "gpu", "mps"], default="cpu", help="Hardware accelerator to use")
+    parser.add_argument("--max_steps", type=int, default=-1, help="Maximum number of training steps. Overrides num_train_epochs.")
+    parser.add_argument("--save_strategy", choices=["steps", "epoch"], default="epoch", help="Model saving strategy")
+    parser.add_argument("--save_steps", type=int, default=500, help="Save checkpoint every X steps (if save_strategy is 'steps')")
+    parser.add_argument("--logging_steps", type=int, default=10, help="Log training metrics every X steps")
 
     args = parser.parse_args()
 
     print("🇧🇩 Meena Advanced Trainer")
-    print(f"Model: {args.model_size} | Bengali: {args.enable_bengali} | Device: {args.accelerator}")
+    print(f"Model: {args.model_size} | Language: {args.language} | LoRA: {args.use_lora} | Device: {args.accelerator}")
 
     trainer = MeenaTrainer(args)
     trainer.train()

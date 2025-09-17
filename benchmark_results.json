@@ -1,0 +1,8 @@
+{
+  "model_size_mb": 0,
+  "avg_inference_time_ms": 193.6269998550415,
+  "perplexity": 33922855206912.0,
+  "bleu_score": 0.0,
+  "total_parameters": 126799104,
+  "trainable_parameters": 0
+}
