@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/sheikh-vegeta/Meena/refs/heads/feat/hf-publish-pipeline/logo/mina-raju-cartoon-protect-logo-png_seeklogo-502497%20(2).png" alt="Meena Logo" width="120" height="120">
+<img src="logo/mina-raju-cartoon-protect-logo-png_seeklogo-502497%20(2).png" alt="Meena Logo" width="120" height="120">
 
 # 🤖 **Meena** - Enterprise AI Pipeline
 
@@ -118,14 +118,33 @@ source meena-env/bin/activate  # Windows: meena-env\Scripts\activate
 # প্রয়োজনীয় প্যাকেজ ইনস্টল করুন | Install dependencies
 pip install -r requirements.txt
 
-# প্রশিক্ষণ শুরু করুন | Start training
-python train.py --language bengali
+# প্রশিক্ষণ শুরু করুন (বাংলা ডেটাসেট) | Start training (Bengali dataset)
+python train.py --language bengali --use_lora true
 
-# বেঞ্চমার্ক চালান | Run benchmark
-python benchmark.py --eval-lang bn
+# বেঞ্চমার্ক চালান (বাংলা মডেল) | Run benchmark (Bengali model)
+python benchmark.py --model_path ./model_artifacts --output_file benchmark_results.json --eval_lang bengali
 ```
 
-> 💡 **প্রো টিপ:** `--language mixed` ব্যবহার করে বাংলা ও ইংরেজি একসাথে প্রশিক্ষণ দিন!
+> 💡 **Pro Tip:** Use `--language mixed` to train on both Bengali and English data, and `--use_lora false` for full fine-tuning.
+
+### 🤖 **How to Use | ব্যবহারবিধি**
+
+Once you have a trained model, you can use it for inference. Here is a simple example:
+
+```python
+from transformers import AutoTokenizer, AutoModelForCausalLM
+
+# আপনার মডেলের পাথ দিন | Path to your model
+model_path = "./model_artifacts"
+tokenizer = AutoTokenizer.from_pretrained(model_path)
+model = AutoModelForCausalLM.from_pretrained(model_path)
+
+# বাংলাতে প্রশ্ন করুন | Ask in Bengali
+prompt = "মানব: বাংলাদেশ সম্পর্কে কিছু বলুন।\nসহায়ক:"
+inputs = tokenizer(prompt, return_tensors="pt")
+outputs = model.generate(**inputs, max_new_tokens=50)
+print(tokenizer.decode(outputs[0], skip_special_tokens=True))
+```
 
 ---
 
@@ -169,14 +188,14 @@ python benchmark.py --eval-lang bn
 ```
 datasets/
 ├── 🇧🇩 bengali/
-│   ├── আনুষ্ঠানিক-কথোপকথন.json    # Formal dialogues
-│   ├── নৈমিত্তিক-চ্যাট.json          # Casual conversations
-│   └── সাহিত্যিক-সংলাপ.json         # Literary dialogues
+│   ├── formal_dialogues.json
+│   ├── casual_chat.json
+│   └── literary_dialogues.json
 ├── 🇺🇸 english/
 │   ├── dialogpt_data.json
 │   └── general_conversations.json
 └── 🌍 mixed/
-    └── bilingual_pairs.json      # দ্বিভাষিক জোড়া
+    └── bilingual_pairs.json
 ```
 
 ---
@@ -276,7 +295,7 @@ flowchart LR
 
 ---
 
-<img src="https://raw.githubusercontent.com/sheikh-vegeta/Meena/refs/heads/feat/hf-publish-pipeline/logo/mina-raju-cartoon-protect-logo-png_seeklogo-502497%20(2).png" alt="Meena Logo" width="60" height="60">
+<img src="logo/mina-raju-cartoon-protect-logo-png_seeklogo-502497%20(2).png" alt="Meena Logo" width="60" height="60">
 
 **Made with ❤️ by the Meena Team**
 
